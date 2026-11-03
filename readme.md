@@ -168,6 +168,7 @@ user_login = "xdevelopers"
 user_id = 2244994945
 
 await api.user_by_id(user_id)  # User
+await api.users_by_ids([user_id, 783214])  # list[User | None], in request order
 await api.user_by_login(user_login)  # User
 await api.user_about(user_login)  # AccountAbout
 await gather(api.following(user_id, limit=20))  # list[User]
@@ -217,9 +218,9 @@ A failed request raises instead of looking like an empty result:
 - `AbortReqError` when twscrape gives up on a request, for example on an HTML block page, including `GqlFeaturesOutdatedError` when X requires GraphQL features twscrape can't enable
 - `ApiError`, its subclass, when X answers with errors and no data; a busy or timed-out X (`LoadShed`, `DeadlineExceeded`) is retried a few times first
 - `XClIdParseError` when the X client transaction ID can't be generated
-- `ParseError` when `tweet_details()`, `user_about()` or `community_info()` gets the requested object but twscrape can't parse it; its subclass `UserParseError` for `user_by_id()` and `user_by_login()`
+- `ParseError` when `tweet_details()`, `user_about()` or `community_info()` gets the requested object but twscrape can't parse it; its subclass `UserParseError` for `user_by_id()`, `users_by_ids()` and `user_by_login()`
 
-A paginated method raises on the page that failed, after yielding the earlier pages, and skips single items it can't parse. `None` from `tweet_details()`, `user_by_id()`, `user_by_login()`, `user_about()` or `community_info()` means X has no such object (or no account was available and `raise_when_no_account` is off). In the CLI, a failed request exits with code 1 without a traceback.
+A paginated method raises on the page that failed, after yielding the earlier pages, and skips single items it can't parse. `None` from `tweet_details()`, `user_by_id()`, `user_by_login()`, `user_about()` or `community_info()`, or in place of a user in the `users_by_ids()` list means X has no such object (or no account was available and `raise_when_no_account` is off). In the CLI, a failed request exits with code 1 without a traceback.
 
 ## CLI
 
@@ -237,6 +238,7 @@ twscrape tweet_replies TWEET_ID --limit=20
 twscrape tweet_thread TWEET_ID --limit=20
 twscrape retweeters TWEET_ID --limit=20
 twscrape user_by_id USER_ID
+twscrape users_by_ids USER_ID [USER_ID ...]
 twscrape user_by_login USERNAME
 twscrape user_about USERNAME
 twscrape user_media USER_ID --limit=20
