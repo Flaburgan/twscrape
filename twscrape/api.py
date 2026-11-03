@@ -18,7 +18,7 @@ from .models import (
     parse_user,
     parse_users,
 )
-from .queue_client import QueueClient
+from .queue_client import Ctx, QueueClient, check_verified_phone
 from .utils import encode_params, find_obj, get_by_path
 
 # GraphQL operation IDs used by this module.
@@ -37,6 +37,7 @@ OP_Following = "eDqlbOS46zda8jDT8dEQ_Q/Following"
 OP_GenericTimelineById = "UToImY30uYcerTaw8gu21w/GenericTimelineById"
 OP_ListLatestTweetsTimeline = "UMc_lPEeKz_WiKSY8ZT7yw/ListLatestTweetsTimeline"
 OP_ListMembers = "vgA6FHTOKJQ1rJ7iiHc0xw/ListMembers"
+OP_ProfileUserPhoneState = "5kUWP8C1hcd6omvg6HXXTQ/ProfileUserPhoneState"
 OP_Retweeters = "VzgCyBwfqzAvPjK2E4U2vA/Retweeters"
 OP_SearchTimeline = "vLHjqbDv7TPFMBkIIO1nOA/SearchTimeline"
 OP_TweetDetail = "dQDdKtt882nl-Km98FJGSQ/TweetDetail"
@@ -46,6 +47,7 @@ OP_UserCreatorSubscriptions = "mdZ9ngiV6niOd2neFHNDSA/UserCreatorSubscriptions"
 OP_UserMedia = "iTSlWbsmD00dAE7Sk9xvIw/UserMedia"
 OP_UserTweets = "D6z-FJI2pKuwEeYYxVIGbg/UserTweets"
 OP_UserTweetsAndReplies = "FmuxExUC21Xn_C2NwtX5sQ/UserTweetsAndReplies"
+OP_Viewer = "TpQxQtWMTMnIAMPlMGMqNw/Viewer"
 OP_membersSliceTimeline_Query = "woAp_YdzAdqnWDrqLTNpAw/membersSliceTimeline_Query"
 OP_moderatorsSliceTimeline_Query = "0oYT9GRiWUhrz5xoqFE9uw/moderatorsSliceTimeline_Query"
 # GQL_OPS_CODEGEN
@@ -281,6 +283,22 @@ class API:
             if toggles:
                 params["fieldToggles"] = toggles
             return await client.get(f"{GQL_URL}/{op}", params=encode_params(params))
+
+    # accounts
+
+    async def check_verified_phone(self, usernames: list[str] | None = None):
+        """Check and store the phone state of the given accounts, or of every active one."""
+        res: dict[str, bool | None] = {}
+        for acc in await self.pool.get_all():
+            if (acc.username not in usernames) if usernames else not acc.active:
+                continue
+
+            ctx = Ctx(acc, acc.make_client(proxy=self.proxy), proxy=acc.resolve_proxy(self.proxy))
+            try:
+                res[acc.username] = await check_verified_phone(ctx, self.pool)
+            finally:
+                await ctx.aclose()
+        return res
 
     # search
 
